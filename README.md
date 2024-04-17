@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
 
 ## Getting Started
 
-First, run the development server:
+1. Setup Basic structure & modelling with mongoose and zod
 
+- Open the terminal and start the `next` project & run the basic template.
+```bash
+npx create-next-app@latest
+```
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
 ```
+- Open the app and create a folder `model` inside `src` and file `user.model.ts` inside `model`.
+- Install dependencies.
+```bash
+npx i mongoose zod
+```
+- Setup `user.model.ts` file inside `model` folder.
+```typescript
+import mongoose, { Document, Schema } from "mongoose";
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+export interface Message extends Document {
+  content: string;
+  createdAt: Date;
+}
+export interface User extends Document {
+  username: String;
+  password: String;
+  email: string;
+  verifyCode: String;
+  verifyCodeExpiry: Date;
+  isVerified: Boolean;
+  createdAt: Date;
+  isAcceptingMessage: Boolean;
+  message: Message[];
+}
+const MessageSchema: Schema<Message> = new Schema({
+  content: {
+    type: String,
+    required: [true, "content is required"],
+  },
+  createdAt: {
+    type: Date,
+    required: true,
+  },
+});
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+const UserSchema: Schema<User> = new Schema({
+  username: {
+    type: String,
+    required: [true, "username is required"],
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: [true, "email is required"],
+    unique: true,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verifyCode: {
+    type: String,
+    required: true,
+  },
+  verifyCodeExpiry: {
+    type: Date,
+    required: true,
+  },
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+  isAcceptingMessage: {
+    type: Boolean,
+    default: true,
+  },
+  createdAt: {
+    type: Date,
+    required: true,
+  },
+  message: [MessageSchema],
+});
 
-## Learn More
+const UserModel =
+  (mongoose.models.User as mongoose.Model<User>) ||
+  mongoose.model<User>("User", UserSchema);
+export default UserModel;
 
-To learn more about Next.js, take a look at the following resources:
+```
+- Setup zod validation & make a folder `schemas` inside `src` with different files for schema Validations
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```js
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+// Signup
+import { z } from "zod";
+export const usernameValidation = z
+  .string()
+  .min(2, "username must b atleast of 2 charahters")
+  .max(20, "username must not b more than 20 charahters")
+  .regex(/^[a-zA-Z0-9_]+$/, "username must not contain special charcters");
+export const signUpValidation = z.object({
+  username: usernameValidation,
+  email: z.string().email({message:"Invalid email"}),
+  password: z.string().min(6, {message:"password must contain six characters"}),
+});
 
-## Deploy on Vercel
+//Signin
+import {z} from 'zod';
+export const signInSchema=z.object({
+    identifier:z.string(),
+    password:z.string(),
+})
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+//VerifySchema
+import {z} from 'zod';
+ export const verifySchema=z.object({
+    code:z.string().length(6,{message:"must contain six charcters"})
+ })
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+//acceptMessage
+import {z} from 'zod';
+export const acceptMessageSchema=z.object({
+    acceptMessages:z.boolean()
+})
+
+
+//MessageSchema
+import {z} from 'zod';
+export const messageSchema=z.object({
+    content:z.string().min(5,{message:"message must be more than 5 charcters"}).max(300,{message:"must b less than 300 characters"})
+})
+```
