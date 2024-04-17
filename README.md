@@ -1,8 +1,8 @@
 
 
-## Getting Started
+## Documentation 
 
-1. Setup Basic structure & modelling with mongoose and zod
+### 1. Setup Basic structure & modelling with mongoose and  Validations with zod
 
 - Open the terminal and start the `next` project & run the basic template.
 ```bash
@@ -135,4 +135,39 @@ import {z} from 'zod';
 export const messageSchema=z.object({
     content:z.string().min(5,{message:"message must be more than 5 charcters"}).max(300,{message:"must b less than 300 characters"})
 })
+```
+
+### 2. Database Connection with MongoDB
+- Created a `lib` folder inside `src` and `dbConnect.ts` file inside `lib` for database connection.
+
+```typescript
+// dbConnect.ts
+
+import mongoose from 'mongoose';
+
+type connectionObject={
+    isConnected?:number
+}
+const connection:connectionObject={};
+
+async function dbConnect():Promise<void>{
+    if(connection.isConnected){
+        console.log("Already Connected");
+        return
+    }
+
+    try {
+        const db= await mongoose.connect(process.env.MONGODB_URI ||"",{})
+        console.log(db);
+       connection.isConnected= db.connections[0].readyState
+
+       console.log('DB connected successfully');
+       
+    } catch (error) {
+       console.log("Database connection Failed",error);
+        
+    }
+}
+
+export default dbConnect;
 ```
