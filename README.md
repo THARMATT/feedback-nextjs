@@ -138,36 +138,135 @@ export const messageSchema=z.object({
 ```
 
 ### 2. Database Connection with MongoDB
+
 - Created a `lib` folder inside `src` and `dbConnect.ts` file inside `lib` for database connection.
 
 ```typescript
 // dbConnect.ts
 
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-type connectionObject={
-    isConnected?:number
-}
-const connection:connectionObject={};
+type connectionObject = {
+  isConnected?: number;
+};
+const connection: connectionObject = {};
 
-async function dbConnect():Promise<void>{
-    if(connection.isConnected){
-        console.log("Already Connected");
-        return
-    }
+async function dbConnect(): Promise<void> {
+  if (connection.isConnected) {
+    console.log("Already Connected");
+    return;
+  }
 
-    try {
-        const db= await mongoose.connect(process.env.MONGODB_URI ||"",{})
-        console.log(db);
-       connection.isConnected= db.connections[0].readyState
+  try {
+    const db = await mongoose.connect(process.env.MONGODB_URI || "", {});
+    console.log(db);
+    connection.isConnected = db.connections[0].readyState;
 
-       console.log('DB connected successfully');
-       
-    } catch (error) {
-       console.log("Database connection Failed",error);
-        
-    }
+    console.log("DB connected successfully");
+  } catch (error) {
+    console.log("Database connection Failed", error);
+  }
 }
 
 export default dbConnect;
+
+```
+
+### 3. Configure Resend
+- Explore [resend](https://resend.com/docs/send-with-nextjs) and [ react-email ](https://react.email/docs/getting-started/manual-setup) and install the dependencies.
+```bash
+npm i resend react-email
+```
+- Make a `email` folder in root directory and `verficationEmail.ts` file inside it.
+  - `VerificationEmail.ts` just contain normal `HTML` copy pasted from `react-email`
+```typescript
+import {
+  Button,
+  Html,
+  Head,
+  Font,
+  Preview,
+  Heading,
+  Row,
+  Section,
+  Text,
+} from "@react-email/components";
+import * as React from "react";
+
+interface VerificatonEmailProps {
+  username: string;
+  otp: string;
+}
+
+export default function VerificationEmail({
+  username,
+  otp,
+}: VerificatonEmailProps) {
+  return (
+    <Html>
+      <Head>
+        <title>Verification Code</title>
+        <Font fontFamily="Roboto" fallbackFontFamily={"Verdana"}></Font>
+      </Head>
+      <Preview>Your six didgit OTP is: {otp}</Preview>
+      <Section>
+        <Heading>Hello {username}</Heading>
+      </Section>
+      <Row>
+        <Heading>Thankyou for registering</Heading>
+      </Row>
+    </Html>
+  );
+}
+
+```
+- Make a folder `types` for `ApiResponse.ts`
+
+```typescript
+//ApiResponse.ts
+
+import { Message } from "@/model/user.model";
+
+export interface ApiResponse {
+  success: boolean;
+  message: string;
+  isAcceptingMessage?: boolean;
+  messages?: Array<Message>;
+}
+
+```
+- Created a file `resend.ts` inside `lib` folder which export the resend Api Key.
+```typescript
+//resend.ts
+
+import { Resend } from "resend";
+export const resend = new Resend(process.env.RESEND_API_KEY);
+
+```
+- Created a `helper` folder for `resendEmailVerfication`
+  - `resendEmailVerication.ts` contain code to send email.
+```typescript
+//resendEmailVerication.ts
+import { resend } from "@/lib/resend";
+import VerificationEmail from "../../email/verificationEmail";
+import { ApiResponse } from "@/types/ApiResponse";
+export async function sendVerificationEmail(
+  email: string,
+  username: string,
+  verifyCode: string
+): Promise<ApiResponse> {
+  try {
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: email,
+      subject: "Verification Code",
+      react: VerificationEmail({ username, otp: verifyCode }),
+    });
+    return { success: true, message: "Email sended successfully" };
+  } catch (error) {
+    console.error("Email sending error", error);
+    return { success: false, message: "Failed to send email verification" };
+  }
+}
+
 ```
