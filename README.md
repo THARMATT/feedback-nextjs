@@ -1,5 +1,4 @@
 
-
 ## Documentation 
 
 ### 1. Setup Basic structure & modelling with mongoose and  Validations with zod
@@ -220,7 +219,7 @@ export default function VerificationEmail({
 }
 
 ```
-- Make a folder `types` for `ApiResponse.ts`
+- Make a folder `types` and file `ApiResponse.ts` inside `types`
 
 ```typescript
 //ApiResponse.ts
