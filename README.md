@@ -368,3 +368,255 @@ export async function POST(req: Request) {
   }
 }
 ```
+## 05. Auth.js/Next-Auth Guide
+
+- Install dependency
+
+```bash
+npm i next-auth
+```
+- Make a folder named `auth` inside `api`  folder & make another folder `[...nextauth]` inside `auth`.
+- Now there is always two files are made for any implementation[google-login, credentials, github-login ]
+   - options.ts
+   - route.ts
+- Now explore some docs of [Next Auth](https://next-auth.js.org/getting-started/example) where we find we have three types of `Providers` [OAuth,Email,Credentials]
+- Login with Github,Google or any third party is easy because it takes only `clientId` and `clientSectret`.
+- Credentials  are love because they are secure enough, now lets explore [Pages](https://next-auth.js.org/configuration/pages) and [Callbacks](https://next-auth.js.org/configuration/callbacks).
+- `Callbacks` gives `signin`, `jwt`, `session` & `reDirect`
+```bash
+...
+  callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      return true
+    },
+    async redirect({ url, baseUrl }) {
+      return baseUrl
+    },
+    async session({ session, user, token }) {
+      return session
+    },
+    async jwt({ token, user, account, profile, isNewUser }) {
+      return token
+    }
+...
+}
+```
+- Max work we do in `option.ts` because data remains segregated.
+  - We have to modyfy callbacks in `options.ts`  because we dont have user types.
+
+```typescript
+import { NextAuthOptions } from "next-auth";
+import dbConnect from "@/lib/dbConnect";
+
+import bcrypt from "bcryptjs";
+
+import UserModel from "@/model/user.model";
+import CredentialsProvider from "next-auth/providers/credentials";
+
+export const authOptions: NextAuthOptions = { 
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      id: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email", placeholder: "Aghori" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials: any):Promise<any> {
+        await dbConnect();
+        try {
+          const user = await UserModel.findOne({
+            $or: [
+              {
+                email: credentials.identifier,
+              },
+              {
+                username: credentials.identifier,
+              },
+            ],
+          });
+          if (!user) {
+            throw new Error("No user found with this email");
+          }
+          if (!user.isVerified) {
+            throw new Error("Please verify your account ");
+          }
+
+          const isPasswordCorrect = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+          if (isPasswordCorrect) {
+            return user;
+          } else {
+            throw new Error("Incorrect Password");
+          }
+        } catch (error: any) {
+          throw new Error(error);
+        }
+      },
+    }),
+  ],
+  //Make a types file 
+  callbacks: {
+    async session({ session, token }) {
+      if (token) {
+        session.user._id = token._id; //
+        session.user.isVerified = token.isVerified;
+        session.user.isAcceptingMessages = token.isAcceptingMessages;
+        session.user.username = token.username;
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token._id = user._id?.toString(); 
+        token.isVerified = user.isVerified;
+        token.isAcceptingMessages = user.isAcceptingMessages;
+        token.username = user.username;
+      }
+      return token;
+    },
+  },
+  pages: {
+    signIn: "/sign-in",
+  },
+  session: {
+    strategy: "jwt",
+  },
+  secret: process.env.SECRET_NEXT_AUTH,
+};
+
+```
+- Make a `next-auth.d.ts` inside `types` folder to modify types for `user`
+```typescript
+//next-auth.d.ts-
+import 'next-auth';
+import { DefaultSession } from 'next-auth';
+declare module 'next-auth'{
+    interface User{
+        _id?:string,
+        isVerified?:boolean,
+        isAcceptingMessages?:boolean,
+        username?:string
+    }
+    interface Session{
+        user:{
+            _id?:string,
+            isVerified?:boolean;
+            isAcceptingMessages?:boolean;
+            username?:string
+        } & DefaultSession['user']
+    }
+}
+
+declare module 'next-auth/jwt'{
+    interface JWT{
+        _id?:string;
+        isVerified?:boolean;
+        isAcceptingMessages?:boolean;
+        username?:string;
+    }
+}
+```
+- Now there is less pain because all the work is done in authorize method and now  we dont have to query again and again to Database
+- Now make `route.ts` 
+```typescript
+import NextAuth from 'next-auth/next';
+import {authOptions} from './options';
+
+const handler=NextAuth(authOptions);
+
+export {handler as GET, handler as POST}
+```
+- Now make a Middleware file `middleware.ts`
+```typescript
+//middleware.ts
+
+
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+export { default } from "next-auth/middleware";
+import { getToken } from "next-auth/jwt"
+// This function can be marked `async` if using `await` inside
+export async function middleware(request: NextRequest) {
+
+    const token=await getToken({req:request});
+    const url=request.nextUrl;
+    if(token && (
+        url.pathname.startsWith('/sign-in') ||
+        url.pathname.startsWith('/sign-up') ||
+        url.pathname.startsWith('/verify') ||
+        url.pathname.startsWith('/') 
+
+    )){
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    if(!token && url.pathname.startsWith('/dashboard')){
+      return NextResponse.redirect(new URL('/sign-in',request.url))
+    }
+  return NextResponse.next()
+}
+ 
+// See "Matching Paths" below to learn more
+export const config = {
+  matcher: ['/sign-in','/sign-up','/','/dashboard/:path*','/verify/:path* ']
+}
+```
+- Make a testing file for `login` inside `sign-in` folder which is under `(auth)` folder
+```typescript
+
+'use-client'
+import { useSession, signIn, signOut } from "next-auth/react"
+
+export default function Component() {
+  const { data: session } = useSession()
+  if (session) {
+    return (
+      <>
+        Signed in as {session.user.email} <br />
+        <button onClick={() => signOut()}>Sign out</button>
+      </>
+    )
+  }
+  return (
+    <>
+      Not signed in <br />
+      <button onClick={() => signIn()}>Sign in</button>
+    </>
+  )
+}
+```
+- Make a `context` folder for ` AuthProvider.ts`
+```typescript
+'use-client'
+
+import { SessionProvider } from "next-auth/react"
+
+export default function AuthProvider({
+  children,
+
+}:{children:React.ReactNode}) {
+  return (
+    <SessionProvider >
+   {children}
+    </SessionProvider>
+  )
+}
+```
+- Wrap layout body inside AuthProvider
+```typescript
+    <AuthProvider>  <body className={inter.className}>{children}</body></AuthProvider>
+```
+
+### Summary of Next Auth
+- Two main things we needed one is callback and other is Provider.
+- So we created a folder inside api and two main files` route.ts and option.ts` inside [...nextauth].
+- `option.ts` is just to organize the data.
+- Now inside Provider if we have github/other provider we just have to put credentials and secret.
+- We had `CredentialProvider` so we have two fields `email` and `password`.
+- We have our own authorize strategy for checking password, database query.
+- Then we modify our callbacks so that we dont have to query again and again to database; we can easily take our data from session and token.
+- Then we configure middleware which has two parts:
+    - config (kon kon se path pr middleware run krna hai...) 
+- Make a bundle (auth) and go to sign-in and wrap our layout inside SessionProvider

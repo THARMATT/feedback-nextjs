@@ -5,14 +5,14 @@ export interface Message extends Document{
     createdAt:Date
 }
 export interface User extends Document{
-    username:String,
-    password:String,
+    username:string,
+    password:string,
     email:string,
-    verifyCode:String,
+    verifyCode:string,
     verifyCodeExpiry:Date,
-    isVerified:Boolean,
+    isVerified:boolean,
     createdAt:Date,
-    isAcceptingMessage:Boolean,
+    isAcceptingMessage:boolean,
     message:Message[]
 }
 const MessageSchema:Schema<Message>=new Schema({
