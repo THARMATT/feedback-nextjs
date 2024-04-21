@@ -8,7 +8,7 @@ import { sendVerificationEmail } from "@/helpers/resendEmailVerification";
 export async function POST(req: Request) {
   await dbConnect();
   try {
-    const { username, email, password, isVerified, verifyCode } = await req.json();
+    const { username, email, password } = await req.json();
     const existingUserwithUsername = await UserModel.findOne({
       username,
       isVerified: true,
@@ -25,6 +25,8 @@ export async function POST(req: Request) {
     const existingUserwithEmail = await UserModel.findOne({
       email,
     });
+    let verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+
     if (existingUserwithEmail) {
       if(existingUserwithEmail.isVerified){
         return Response.json({
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
       const expiryDate = new Date();
       expiryDate.setHours(expiryDate.getHours() + 1);
 
-      const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+   
       const newUser = new UserModel({
         username,
         password: hashedPassword,
@@ -79,7 +81,7 @@ export async function POST(req: Request) {
 
     return Response.json({
       
-      success:false,
+      success:true,
       message:"Username is registered succesfully and please verify your Email",
     },{
       status:200
@@ -87,7 +89,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.log("Error while Signup", error);
     return Response.json(
-      { message: "Failed to signup", success: false },
+      { message: "Failed to signup", success: false , },
       { status: 500 }
     );
   }
