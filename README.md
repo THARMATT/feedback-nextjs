@@ -639,7 +639,7 @@ export default function AuthProvider({
     - config (kon kon se path pr middleware run krna hai...) 
 - Make a bundle (auth) and go to sign-in and wrap our layout inside SessionProvider
 ---
-## Routes for OTP-Verification and Unique Username
+## 6. Routes for OTP-Verification and Unique Username
 
 - Littlebit testing with Postman and dowloaded Postman in machine for local testing.
 - Test our POST route
@@ -831,4 +831,57 @@ export async function POST(req: Request) {
   }
 }
 
+```
+## 7. Open AI API integration and backend route
+- Created a folder named `suggest-messages` folder for writing backend logic for OpenAI API .
+- Explore the [Vercel doc](https://sdk.vercel.ai/docs/guides/providers/openai) and copy pasted and add a prompt
+
+```typescript
+import OpenAI from "openai";
+import { OpenAIStream, StreamingTextResponse } from "ai";
+import { NextResponse } from "next/server";
+
+// Create an OpenAI API client (that's edge friendly!)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
+  try {
+
+    const prompt="Create a list of three open-ended and enganging questions formatted in a single string.Each question should be seprated by '||' ";
+    const { messages } = await req.json();
+
+    // Ask OpenAI for a streaming chat completion given the prompt
+    const response = await openai.completions.create({
+        model: 'gpt-3.5-turbo-instruct',
+        max_tokens: 200,
+        stream: true,
+        prompt,
+      });
+
+    // Convert the response into a friendly text-stream
+    const stream = OpenAIStream(response);
+    // Respond with the stream
+    return new StreamingTextResponse(stream);
+  } catch (error) {
+    if (error instanceof OpenAI.APIError) {
+      const { name, status, headers, message } = error;
+      return NextResponse.json(
+        {
+          name,
+          status,
+          headers,
+          message,
+        },
+        { status }
+      );
+    } else {
+      console.log("error related to openAi", error);
+      throw error;
+    }
+  }
+}
 ```
