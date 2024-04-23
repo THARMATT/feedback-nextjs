@@ -1,7 +1,7 @@
 
-## Documentation 
+# Documentation 
 
-### 1. Setup Basic structure & modelling with mongoose and  Validations with zod
+## 1. Setup Basic structure & modelling with mongoose and  Validations with zod
 
 - Open the terminal and start the `next` project & run the basic template.
 ```bash
@@ -136,7 +136,7 @@ export const messageSchema=z.object({
 })
 ```
 
-### 2. Database Connection with MongoDB
+## 2. Database Connection with MongoDB
 
 - Created a `lib` folder inside `src` and `dbConnect.ts` file inside `lib` for database connection.
 
@@ -171,7 +171,7 @@ export default dbConnect;
 
 ```
 
-### 3. Configure Resend
+## 3. Configure Resend
 - Explore [resend](https://resend.com/docs/send-with-nextjs) and [ react-email ](https://react.email/docs/getting-started/manual-setup) and install the dependencies.
 ```bash
 npm i resend react-email
@@ -269,7 +269,9 @@ export async function sendVerificationEmail(
 }
 
 ```
-### 4. SignUp Api 
+
+---
+## 4. SignUp API 
 - Created a `route.ts` file inside `signup` and this folder inside `src/api` folder.
 
 ```typescript
@@ -279,11 +281,11 @@ import bcrypt from "bcryptjs";
 
 import { sendVerificationEmail } from "@/helpers/resendEmailVerification";
 
-
 export async function POST(req: Request) {
   await dbConnect();
   try {
-    const { username, email, password, isVerified, verifyCode } = await req.json();
+    const { username, email, password, isVerified, verifyCode } =
+      await req.json();
     const existingUserwithUsername = await UserModel.findOne({
       username,
       isVerified: true,
@@ -301,22 +303,22 @@ export async function POST(req: Request) {
       email,
     });
     if (existingUserwithEmail) {
-      if(existingUserwithEmail.isVerified){
-        return Response.json({
-      
-          success:false,
-          message:"User already exists with this email",
-        },{
-          status:400
-        },)
-      }
-      else{
-        const hashedPassword= await bcrypt.hash(password,10);
-        existingUserwithEmail.password=hashedPassword;
-        existingUserwithEmail.verifyCode=verifyCode;
-        existingUserwithEmail.verifyCodeExpiry=new Date(Date.now()+3600000);
-        await existingUserwithEmail.save()
-
+      if (existingUserwithEmail.isVerified) {
+        return Response.json(
+          {
+            success: false,
+            message: "User already exists with this email",
+          },
+          {
+            status: 400,
+          }
+        );
+      } else {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        existingUserwithEmail.password = hashedPassword;
+        existingUserwithEmail.verifyCode = verifyCode;
+        existingUserwithEmail.verifyCodeExpiry = new Date(Date.now() + 3600000);
+        await existingUserwithEmail.save();
       }
     } else {
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -337,28 +339,33 @@ export async function POST(req: Request) {
       await newUser.save();
     }
 
-    const emailResponse=await sendVerificationEmail(
+    const emailResponse = await sendVerificationEmail(
       email,
       username,
-      verifyCode,
-    )
-    if(!emailResponse.success){
-      return Response.json({
-      
-        success:false,
-        message:"Failed to send Email response",
-      },{
-        status:400
-      },)
+      verifyCode
+    );
+    if (!emailResponse.success) {
+      return Response.json(
+        {
+          success: false,
+          message: "Failed to send Email response",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    return Response.json({
-      
-      success:false,
-      message:"Username is registered succesfully and please verify your Email",
-    },{
-      status:200
-    },)
+    return Response.json(
+      {
+        success: false,
+        message:
+          "Username is registered succesfully and please verify your Email",
+      },
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
     console.log("Error while Signup", error);
     return Response.json(
@@ -367,7 +374,9 @@ export async function POST(req: Request) {
     );
   }
 }
+
 ```
+---
 ## 05. Auth.js/Next-Auth Guide
 
 - Install dependency
@@ -413,7 +422,7 @@ import bcrypt from "bcryptjs";
 import UserModel from "@/model/user.model";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authOptions: NextAuthOptions = { 
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -422,7 +431,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email", placeholder: "Aghori" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials: any):Promise<any> {
+      async authorize(credentials: any): Promise<any> {
         await dbConnect();
         try {
           const user = await UserModel.findOne({
@@ -457,7 +466,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
-  //Make a types file 
+  //Make a types file
   callbacks: {
     async session({ session, token }) {
       if (token) {
@@ -470,7 +479,7 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user }) {
       if (user) {
-        token._id = user._id?.toString(); 
+        token._id = user._id?.toString();
         token.isVerified = user.isVerified;
         token.isAcceptingMessages = user.isAcceptingMessages;
         token.username = user.username;
@@ -491,122 +500,131 @@ export const authOptions: NextAuthOptions = {
 - Make a `next-auth.d.ts` inside `types` folder to modify types for `user`
 ```typescript
 //next-auth.d.ts-
-import 'next-auth';
-import { DefaultSession } from 'next-auth';
-declare module 'next-auth'{
-    interface User{
-        _id?:string,
-        isVerified?:boolean,
-        isAcceptingMessages?:boolean,
-        username?:string
-    }
-    interface Session{
-        user:{
-            _id?:string,
-            isVerified?:boolean;
-            isAcceptingMessages?:boolean;
-            username?:string
-        } & DefaultSession['user']
-    }
+import "next-auth";
+import { DefaultSession } from "next-auth";
+declare module "next-auth" {
+  interface User {
+    _id?: string;
+    isVerified?: boolean;
+    isAcceptingMessages?: boolean;
+    username?: string;
+  }
+  interface Session {
+    user: {
+      _id?: string;
+      isVerified?: boolean;
+      isAcceptingMessages?: boolean;
+      username?: string;
+    } & DefaultSession["user"];
+  }
 }
 
-declare module 'next-auth/jwt'{
-    interface JWT{
-        _id?:string;
-        isVerified?:boolean;
-        isAcceptingMessages?:boolean;
-        username?:string;
-    }
+declare module "next-auth/jwt" {
+  interface JWT {
+    _id?: string;
+    isVerified?: boolean;
+    isAcceptingMessages?: boolean;
+    username?: string;
+  }
 }
+
 ```
 - Now there is less pain because all the work is done in authorize method and now  we dont have to query again and again to Database
 - Now make `route.ts` 
 ```typescript
-import NextAuth from 'next-auth/next';
-import {authOptions} from './options';
+import NextAuth from "next-auth/next";
+import { authOptions } from "./options";
 
-const handler=NextAuth(authOptions);
+const handler = NextAuth(authOptions);
 
-export {handler as GET, handler as POST}
+export { handler as GET, handler as POST };
+
 ```
 - Now make a Middleware file `middleware.ts`
 ```typescript
 //middleware.ts
 
-
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 export { default } from "next-auth/middleware";
-import { getToken } from "next-auth/jwt"
+import { getToken } from "next-auth/jwt";
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
-
-    const token=await getToken({req:request});
-    const url=request.nextUrl;
-    if(token && (
-        url.pathname.startsWith('/sign-in') ||
-        url.pathname.startsWith('/sign-up') ||
-        url.pathname.startsWith('/verify') ||
-        url.pathname.startsWith('/') 
-
-    )){
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-    if(!token && url.pathname.startsWith('/dashboard')){
-      return NextResponse.redirect(new URL('/sign-in',request.url))
-    }
-  return NextResponse.next()
+  const token = await getToken({ req: request });
+  const url = request.nextUrl;
+  if (
+    token &&
+    (url.pathname.startsWith("/sign-in") ||
+      url.pathname.startsWith("/sign-up") ||
+      url.pathname.startsWith("/verify") ||
+      url.pathname.startsWith("/"))
+  ) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+  if (!token && url.pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/sign-in", request.url));
+  }
+  return NextResponse.next();
 }
- 
+
 // See "Matching Paths" below to learn more
 export const config = {
-  matcher: ['/sign-in','/sign-up','/','/dashboard/:path*','/verify/:path* ']
-}
+  matcher: [
+    "/sign-in",
+    "/sign-up",
+    "/",
+    "/dashboard/:path*",
+    "/verify/:path* ",
+  ],
+};
+
 ```
 - Make a testing file for `login` inside `sign-in` folder which is under `(auth)` folder
 ```typescript
-
-'use-client'
-import { useSession, signIn, signOut } from "next-auth/react"
+"use-client";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 export default function Component() {
-  const { data: session } = useSession()
+  const { data: session } = useSession();
   if (session) {
     return (
       <>
         Signed in as {session.user.email} <br />
         <button onClick={() => signOut()}>Sign out</button>
       </>
-    )
+    );
   }
   return (
     <>
       Not signed in <br />
       <button onClick={() => signIn()}>Sign in</button>
     </>
-  )
+  );
 }
+
 ```
 - Make a `context` folder for ` AuthProvider.ts`
 ```typescript
-'use-client'
+"use-client";
 
-import { SessionProvider } from "next-auth/react"
+import { SessionProvider } from "next-auth/react";
 
 export default function AuthProvider({
   children,
-
-}:{children:React.ReactNode}) {
-  return (
-    <SessionProvider >
-   {children}
-    </SessionProvider>
-  )
+}: {
+  children: React.ReactNode;
+}) {
+  return <SessionProvider>{children}</SessionProvider>;
 }
+
 ```
 - Wrap layout body inside AuthProvider
 ```typescript
-    <AuthProvider>  <body className={inter.className}>{children}</body></AuthProvider>
+<AuthProvider>
+  {" "}
+  <body className={inter.className}>{children}</body>
+</AuthProvider>;
+
 ```
 
 ### Summary of Next Auth
@@ -620,3 +638,197 @@ export default function AuthProvider({
 - Then we configure middleware which has two parts:
     - config (kon kon se path pr middleware run krna hai...) 
 - Make a bundle (auth) and go to sign-in and wrap our layout inside SessionProvider
+---
+## Routes for OTP-Verification and Unique Username
+
+- Littlebit testing with Postman and dowloaded Postman in machine for local testing.
+- Test our POST route
+```bash
+http://localhost:3000/api/sign-up
+```
+- We got response
+```bash
+{
+    "success": true,
+    "message": "Username is registered succesfully and please verify your Email"
+}
+```
+- For `sign-in` route we got Errors because we dont handles `Next-Auth`
+- Now we have to check uniqueness of User, so make a file`route.ts` inside folder `unique-username` inside `api` folder.
+- Write the logic for unique username and then test it through Postman and Mongodb by manipulating Data.
+```typescript
+import dbConnect from "@/lib/dbConnect";
+import UserModel from "@/model/user.model";
+
+import { z } from "zod";
+
+import { usernameValidation } from "@/schemas/signUpSchema";
+
+//Make query schema
+const userNameQuerySchema = z.object({
+  username: usernameValidation,
+});
+
+//Make a GET method while typing that username is unique or not
+export async function GET(req: Request) {
+  //connect database
+  await dbConnect();
+
+  try {
+    //check username from url
+    const { searchParams } = new URL(req.url);
+    const queryParam = {
+      username: searchParams.get("username"),
+    };
+
+    //validate with zod
+    const result = userNameQuerySchema.safeParse(queryParam);
+
+    //log for detail info
+    console.log(result);
+
+    if (!result.success) {
+      const usernameErrors = result.error.format().username?._errors || [];
+      return Response.json(
+        {
+          success: false,
+          message: "Invalid query parameters :" + usernameErrors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { username } = result.data;
+
+    const existingVerifyUser = await UserModel.findOne({
+      username,
+      isVerified: true,
+    });
+
+    if (existingVerifyUser) {
+      return Response.json(
+        {
+          success: false,
+          message: "Username is already taken",
+        },
+        { status: 400 }
+      );
+    }
+
+    return Response.json(
+      {
+        success: true,
+        message: "Username is available",
+      },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error("Error in checking username", error);
+    return Response.json(
+      {
+        success: false,
+        message: "Error checking username",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+```
+- Test for the GET method for url `http://localhost:3000/api/unique-username?username=one` and try to manuplate `isVerified:true` in MongoDb.
+
+- Now we have to verify OTP, so make a file`route.ts` inside folder `verify-code` inside `api` folder.
+
+```typescript
+//TODO:ZOD validation
+import dbConnect from "@/lib/dbConnect";
+import UserModel from "@/model/user.model";
+
+export async function POST(req: Request) {
+  //connect database
+  await dbConnect();
+
+  try {
+    //from frontend
+    const { username, code } = await req.json();
+
+   //to get proper url and to decode url
+    const decodedUsername = decodeURIComponent(username);
+
+//query to find user 
+    const user = await UserModel.findOne({
+      username: decodedUsername,
+    });
+
+    if (!user) {
+      return Response.json(
+        {
+          success: false,
+          message: "User not found",
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+
+     // make variables for code exipy and valid otp
+    const isCodeValid = user.verifyCode === code;
+    const isCodeNotExpired = new Date(user.verifyCodeExpiry) > new Date();
+
+    if (isCodeValid && isCodeNotExpired) {
+      user.isVerified = true;
+      await user.save();
+      return Response.json(
+        {
+          success: true,
+          message: "Account verified successfully",
+        },
+        {
+          status: 200,
+        }
+      );
+    } 
+    //code is expired
+    else if (!isCodeNotExpired) {
+      return Response.json(
+        {
+          success: false,
+          message: "verification-code is expired",
+        },
+        {
+          status: 400,
+        }
+      );
+    } 
+    
+    //invalid otp
+    else {
+      return Response.json(
+        {
+          success: false,
+          message: "Incorrect Verification Code",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error in verify username", error);
+    return Response.json(
+      {
+        success: false,
+        message: "Error while Verify username",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+```
