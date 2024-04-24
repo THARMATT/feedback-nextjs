@@ -834,7 +834,11 @@ export async function POST(req: Request) {
 ```
 ## 7. Open AI API integration and backend route
 - Created a folder named `suggest-messages` folder for writing backend logic for OpenAI API .
-- Explore the [Vercel doc](https://sdk.vercel.ai/docs/guides/providers/openai) and copy pasted and add a prompt
+- Install dependencies and setup Open API key in `.env`
+```bash
+npm install openai ai
+```
+- Explore the [Vercel doc](https://sdk.vercel.ai/docs/guides/providers/openai) and copy pasted and add a prompt.
 
 ```typescript
 import OpenAI from "openai";
