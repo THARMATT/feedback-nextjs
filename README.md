@@ -832,7 +832,7 @@ export async function POST(req: Request) {
 }
 
 ```
-## 7. Open AI API integration and backend route
+## 7. OpenAI API integration and backend route
 - Created a folder named `suggest-messages` folder for writing backend logic for OpenAI API .
 - Install dependencies and setup Open API key in `.env`
 ```bash
@@ -889,3 +889,5 @@ export async function POST(req: Request) {
   }
 }
 ```
+
+# Mesage API with Aggregation pipeline
